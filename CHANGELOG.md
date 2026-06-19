@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.1] - 2026-06-19
+
+### Fixed
+- Corrected `doctrine/doctrine-bundle` constraint from `^2.0` to `^3.0`
+
+---
+
 ## [1.0.0] - 2026-06-19
 
 ### Added
@@ -33,5 +40,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `gedmo/doctrine-extensions` `^3.0`
 - `letkode/common-bundle` `^1.0`
 
-[Unreleased]: https://github.com/letkode/entity-traits-bundle/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/letkode/entity-traits-bundle/releases/tag/v1.0.0
+[Unreleased]: https://github.com/letkode/entity-traits-bundle/compare/1.0.1...HEAD
+[1.0.1]: https://github.com/letkode/entity-traits-bundle/compare/1.0.0...1.0.1
+[1.0.0]: https://github.com/letkode/entity-traits-bundle/releases/tag/1.0.0

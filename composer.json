@@ -1,0 +1,37 @@
+{
+    "name": "letkode/entity-traits-bundle",
+    "description": "Doctrine entity traits, value objects, DTOs and DQL utilities for Symfony applications",
+    "type": "symfony-bundle",
+    "license": "MIT",
+    "require": {
+        "php": "^8.4",
+        "doctrine/doctrine-bundle": "^2.0",
+        "doctrine/orm": "^3.0",
+        "gedmo/doctrine-extensions": "^3.0",
+        "letkode/common-bundle": "^1.0",
+        "symfony/serializer": "^7.0 || ^8.0",
+        "symfony/uid": "^7.0 || ^8.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11",
+        "phpstan/phpstan": "^2",
+        "friendsofphp/php-cs-fixer": "^3.95"
+    },
+    "autoload": {
+        "psr-4": {
+            "Letkode\\EntityTraitsBundle\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Letkode\\EntityTraitsBundle\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "symfony": {
+            "bundles": {
+                "Letkode\\EntityTraitsBundle\\LetkodeEntityTraitsBundle": ["all"]
+            }
+        }
+    }
+}

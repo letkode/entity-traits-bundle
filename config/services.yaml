@@ -1,0 +1,14 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    Letkode\EntityTraitsBundle\:
+        resource: '../src/'
+        exclude:
+            - '../src/LetkodeEntityTraitsBundle.php'
+            - '../src/Trait/'
+            - '../src/DTO/'
+            - '../src/ValueObject/'
+            - '../src/Attribute/'
+            - '../src/Doctrine/DQL/'

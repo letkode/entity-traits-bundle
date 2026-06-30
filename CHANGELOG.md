@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.0] - 2026-06-30
+
+### Added
+- `FilterCriteria` DTO: holds a field name, operator, and list of string values for a single filter condition
+- `FilterInput` DTO: defines how a filterable field is typed and cast, with factory methods `text()`, `bool()`, `int()`, `float()`, `array()`
+- `$filters` property to `TableQueryRequest` (parsed from `filters[field][op/value]` in `fromArray()`)
+- `$filterable` parameter to `BaseRepositoryTrait::paginate()` accepting `array<string, FilterInput>`
+- `applyFilters()` / `applyFilterCondition()` in `BaseRepositoryTrait` supporting operators: `contains`, `not_contains`, `starts_with`, `ends_with`, `is`, `is_not`, `empty`, `not_empty`, `is_any_of`, `is_not_any_of`, `includes_all`, `excludes_all`
+
+### Changed
+- `TableQueryRequest::fromArray()` now accepts `perPage` (camelCase) as an alias for `per_page`
+
+---
+
 ## [1.0.1] - 2026-06-19
 
 ### Fixed
@@ -40,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `gedmo/doctrine-extensions` `^3.0`
 - `letkode/common-bundle` `^1.0`
 
-[Unreleased]: https://github.com/letkode/entity-traits-bundle/compare/1.0.1...HEAD
+[Unreleased]: https://github.com/letkode/entity-traits-bundle/compare/1.1.0...HEAD
+[1.1.0]: https://github.com/letkode/entity-traits-bundle/compare/1.0.1...1.1.0
 [1.0.1]: https://github.com/letkode/entity-traits-bundle/compare/1.0.0...1.0.1
 [1.0.0]: https://github.com/letkode/entity-traits-bundle/releases/tag/1.0.0

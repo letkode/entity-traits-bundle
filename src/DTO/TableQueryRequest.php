@@ -6,12 +6,16 @@ namespace Letkode\EntityTraitsBundle\DTO;
 
 final readonly class TableQueryRequest
 {
+    /**
+     * @param list<FilterCriteria> $filters
+     */
     public function __construct(
         public int $page = 1,
         public int $perPage = 20,
         public string|null $q = null,
         public string|null $sort = null,
         public string $dir = 'asc',
+        public array $filters = [],
     ) {
     }
 
@@ -19,12 +23,28 @@ final readonly class TableQueryRequest
     {
         $dir = strtolower((string) ($params['dir'] ?? 'asc'));
 
+        $filters = [];
+        $rawFilters = isset($params['filters']) && \is_array($params['filters']) ? $params['filters'] : [];
+
+        foreach ($rawFilters as $field => $data) {
+            if (!\is_array($data) || !isset($data['op'])) {
+                continue;
+            }
+
+            $values = isset($data['value']) && \is_array($data['value'])
+                ? array_values(array_map('strval', $data['value']))
+                : [];
+
+            $filters[] = new FilterCriteria((string) $field, (string) $data['op'], $values);
+        }
+
         return new self(
             page: max(1, (int) ($params['page'] ?? 1)),
-            perPage: min(100, max(1, (int) ($params['per_page'] ?? 20))),
+            perPage: min(100, max(1, (int) ($params['perPage'] ?? $params['per_page'] ?? 20))),
             q: isset($params['q']) && '' !== $params['q'] ? (string) $params['q'] : null,
             sort: isset($params['sort']) && '' !== $params['sort'] ? (string) $params['sort'] : null,
             dir: \in_array($dir, ['asc', 'desc'], true) ? $dir : 'asc',
+            filters: $filters,
         );
     }
 }

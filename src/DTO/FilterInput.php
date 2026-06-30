@@ -38,12 +38,23 @@ final readonly class FilterInput
         return new self('array', $path);
     }
 
+    public static function number(string|null $path = null): self
+    {
+        return new self('number', $path, 'float');
+    }
+
+    public static function date(string|null $path = null): self
+    {
+        return new self('date', $path, 'date');
+    }
+
     public function castValue(string $value): mixed
     {
         return match ($this->cast) {
             'bool'  => 'true' === strtolower($value),
             'int'   => (int) $value,
             'float' => (float) $value,
+            'date'  => new \DateTimeImmutable($value),
             default => $value,
         };
     }

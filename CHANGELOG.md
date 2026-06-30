@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] - 2026-06-30
+
+### Added
+- `FilterInput::number()` factory — type `number`, casts values to `float`
+- `FilterInput::date()` factory — type `date`, casts values to `\DateTimeImmutable`
+- New filter operators in `BaseRepositoryTrait`: `between`, `not_between`, `before`, `after`
+- Multiple conditions per field in `applyFilters()`: same operator groups with OR logic, different operators combine with AND logic
+- `BaseRepositoryTraitFilterTest` covering multi-condition AND/OR composition and all new operators
+
+### Changed
+- **Breaking**: filter wire format in `TableQueryRequest::fromArray()` changed from `filters[field][op/value]` (single condition) to `filters[field][][op/value]` (array of conditions per field)
+- `applyFilterCondition()` replaced by `buildFilterExpression()` which returns expressions instead of directly mutating the QueryBuilder, enabling composable AND/OR logic
+- Filter parameter names now include a condition index suffix (`filter_{field}_{idx}`) to avoid collisions when multiple conditions target the same field
+
+---
+
 ## [1.1.0] - 2026-06-30
 
 ### Added
@@ -54,7 +70,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `gedmo/doctrine-extensions` `^3.0`
 - `letkode/common-bundle` `^1.0`
 
-[Unreleased]: https://github.com/letkode/entity-traits-bundle/compare/1.1.0...HEAD
+[Unreleased]: https://github.com/letkode/entity-traits-bundle/compare/1.2.0...HEAD
+[1.2.0]: https://github.com/letkode/entity-traits-bundle/compare/1.1.0...1.2.0
 [1.1.0]: https://github.com/letkode/entity-traits-bundle/compare/1.0.1...1.1.0
 [1.0.1]: https://github.com/letkode/entity-traits-bundle/compare/1.0.0...1.0.1
 [1.0.0]: https://github.com/letkode/entity-traits-bundle/releases/tag/1.0.0

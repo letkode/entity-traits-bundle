@@ -27,15 +27,21 @@ final readonly class TableQueryRequest
         $rawFilters = isset($params['filters']) && \is_array($params['filters']) ? $params['filters'] : [];
 
         foreach ($rawFilters as $field => $data) {
-            if (!\is_array($data) || !isset($data['op'])) {
+            if (!\is_array($data)) {
                 continue;
             }
 
-            $values = isset($data['value']) && \is_array($data['value'])
-                ? array_values(array_map('strval', $data['value']))
-                : [];
+            foreach ($data as $entry) {
+                if (!\is_array($entry) || !isset($entry['op'])) {
+                    continue;
+                }
 
-            $filters[] = new FilterCriteria((string) $field, (string) $data['op'], $values);
+                $values = isset($entry['value']) && \is_array($entry['value'])
+                    ? array_values(array_map('strval', $entry['value']))
+                    : [];
+
+                $filters[] = new FilterCriteria((string) $field, (string) $entry['op'], $values);
+            }
         }
 
         return new self(

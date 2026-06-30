@@ -111,7 +111,7 @@ final class TableQueryRequestTest extends TestCase
     {
         $request = TableQueryRequest::fromArray([
             'filters' => [
-                'firstName' => ['op' => 'is', 'value' => ['PRUEBA']],
+                'firstName' => [['op' => 'is', 'value' => ['PRUEBA']]],
             ],
         ]);
 
@@ -126,7 +126,7 @@ final class TableQueryRequestTest extends TestCase
     {
         $request = TableQueryRequest::fromArray([
             'filters' => [
-                'rolePolicy' => ['op' => 'is_any_of', 'value' => ['uuid-1', 'uuid-2']],
+                'rolePolicy' => [['op' => 'is_any_of', 'value' => ['uuid-1', 'uuid-2']]],
             ],
         ]);
 
@@ -139,7 +139,7 @@ final class TableQueryRequestTest extends TestCase
     {
         $request = TableQueryRequest::fromArray([
             'filters' => [
-                'email' => ['op' => 'empty'],
+                'email' => [['op' => 'empty']],
             ],
         ]);
 
@@ -152,7 +152,7 @@ final class TableQueryRequestTest extends TestCase
     {
         $request = TableQueryRequest::fromArray([
             'filters' => [
-                'firstName' => ['value' => ['foo']],
+                'firstName' => [['value' => ['foo']]],
             ],
         ]);
 
@@ -163,12 +163,49 @@ final class TableQueryRequestTest extends TestCase
     {
         $request = TableQueryRequest::fromArray([
             'filters' => [
-                'firstName' => ['op' => 'starts_with', 'value' => ['An']],
-                'enabled'   => ['op' => 'is', 'value' => ['true']],
+                'firstName' => [['op' => 'starts_with', 'value' => ['An']]],
+                'enabled'   => [['op' => 'is', 'value' => ['true']]],
             ],
         ]);
 
         self::assertCount(2, $request->filters);
+    }
+
+    public function testFromArrayParsesMultipleConditionsPerField(): void
+    {
+        $request = TableQueryRequest::fromArray([
+            'filters' => [
+                'firstName' => [
+                    ['op' => 'contains', 'value' => ['An']],
+                    ['op' => 'ends_with', 'value' => ['o']],
+                ],
+            ],
+        ]);
+
+        self::assertCount(2, $request->filters);
+        self::assertSame('firstName', $request->filters[0]->field);
+        self::assertSame('contains', $request->filters[0]->operator);
+        self::assertSame(['An'], $request->filters[0]->values);
+        self::assertSame('firstName', $request->filters[1]->field);
+        self::assertSame('ends_with', $request->filters[1]->operator);
+        self::assertSame(['o'], $request->filters[1]->values);
+    }
+
+    public function testFromArrayParsesMultipleFieldsWithMultipleConditions(): void
+    {
+        $request = TableQueryRequest::fromArray([
+            'filters' => [
+                'firstName' => [
+                    ['op' => 'contains', 'value' => ['An']],
+                    ['op' => 'contains', 'value' => ['Jo']],
+                ],
+                'rolePolicy' => [
+                    ['op' => 'is_any_of', 'value' => ['uuid-1', 'uuid-2']],
+                ],
+            ],
+        ]);
+
+        self::assertCount(3, $request->filters);
     }
 
     public function testFromArrayHandlesAbsentFiltersKey(): void

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Letkode\EntityTraitsBundle\Trait\Repository;
 
+use Doctrine\ORM\Query\Expr\Composite;
 use Doctrine\ORM\QueryBuilder;
 use Letkode\CommonBundle\Exception\EntityNotFoundException;
 use Letkode\EntityTraitsBundle\DTO\FilterCriteria;
@@ -100,75 +101,158 @@ trait BaseRepositoryTrait
      */
     private function applyFilters(QueryBuilder $qb, string $alias, array $filters, array $filterable): void
     {
+        $grouped = [];
         foreach ($filters as $criteria) {
             if (!isset($filterable[$criteria->field])) {
                 continue;
             }
+            $grouped[$criteria->field][] = $criteria;
+        }
 
-            $field = $filterable[$criteria->field];
-            $path = $field->path ?? $alias . '.' . $criteria->field;
-
-            $this->applyFilterCondition($qb, $criteria, $field, $path);
+        foreach ($grouped as $fieldName => $criteriaList) {
+            $field = $filterable[$fieldName];
+            $path = $field->path ?? $alias . '.' . $fieldName;
+            $this->applyFieldFilters($qb, $criteriaList, $field, $path);
         }
     }
 
-    private function applyFilterCondition(QueryBuilder $qb, FilterCriteria $criteria, FilterInput $field, string $path): void
+    /**
+     * @param list<FilterCriteria> $criteriaList
+     */
+    private function applyFieldFilters(QueryBuilder $qb, array $criteriaList, FilterInput $field, string $path): void
+    {
+        if (1 === \count($criteriaList)) {
+            $expr = $this->buildFilterExpression($qb, $criteriaList[0], $field, $path, 0);
+            if (null !== $expr) {
+                $qb->andWhere($expr);
+            }
+
+            return;
+        }
+
+        $byOperator = [];
+        foreach ($criteriaList as $idx => $criteria) {
+            $byOperator[$criteria->operator][] = [$idx, $criteria];
+        }
+
+        $andParts = [];
+        foreach ($byOperator as $items) {
+            $orParts = [];
+            foreach ($items as [$idx, $criteria]) {
+                $expr = $this->buildFilterExpression($qb, $criteria, $field, $path, $idx);
+                if (null !== $expr) {
+                    $orParts[] = $expr;
+                }
+            }
+
+            if ([] === $orParts) {
+                continue;
+            }
+
+            $andParts[] = 1 === \count($orParts)
+                ? $orParts[0]
+                : $qb->expr()->orX(...$orParts);
+        }
+
+        if ([] !== $andParts) {
+            $qb->andWhere(1 === \count($andParts)
+                ? $andParts[0]
+                : $qb->expr()->andX(...$andParts));
+        }
+    }
+
+    private function buildFilterExpression(QueryBuilder $qb, FilterCriteria $criteria, FilterInput $field, string $path, int $idx): string|Composite|null
     {
         $op = $criteria->operator;
         $values = $criteria->values;
-        $param = 'filter_' . preg_replace('/[^a-zA-Z0-9]/', '_', $criteria->field);
+        $param = 'filter_' . preg_replace('/[^a-zA-Z0-9]/', '_', $criteria->field) . '_' . $idx;
 
-        match ($op) {
-            'contains' => $qb
-                ->andWhere('ILIKE(' . $path . ', :' . $param . ') = TRUE')
-                ->setParameter($param, '%' . $values[0] . '%'),
+        switch ($op) {
+            case 'contains':
+                $qb->setParameter($param, '%' . $values[0] . '%');
 
-            'not_contains' => $qb
-                ->andWhere('ILIKE(' . $path . ', :' . $param . ') = FALSE')
-                ->setParameter($param, '%' . $values[0] . '%'),
+                return 'ILIKE(' . $path . ', :' . $param . ') = TRUE';
 
-            'starts_with' => $qb
-                ->andWhere('ILIKE(' . $path . ', :' . $param . ') = TRUE')
-                ->setParameter($param, $values[0] . '%'),
+            case 'not_contains':
+                $qb->setParameter($param, '%' . $values[0] . '%');
 
-            'ends_with' => $qb
-                ->andWhere('ILIKE(' . $path . ', :' . $param . ') = TRUE')
-                ->setParameter($param, '%' . $values[0]),
+                return 'ILIKE(' . $path . ', :' . $param . ') = FALSE';
 
-            'is' => $qb
-                ->andWhere($path . ' = :' . $param)
-                ->setParameter($param, $field->castValue($values[0])),
+            case 'starts_with':
+                $qb->setParameter($param, $values[0] . '%');
 
-            'is_not' => $qb
-                ->andWhere($path . ' != :' . $param)
-                ->setParameter($param, $field->castValue($values[0])),
+                return 'ILIKE(' . $path . ', :' . $param . ') = TRUE';
 
-            'empty' => 'text' === $field->type
-                ? $qb->andWhere($path . " IS NULL OR " . $path . " = ''")
-                : $qb->andWhere($path . ' IS NULL'),
+            case 'ends_with':
+                $qb->setParameter($param, '%' . $values[0]);
 
-            'not_empty' => 'text' === $field->type
-                ? $qb->andWhere($path . " IS NOT NULL AND " . $path . " != ''")
-                : $qb->andWhere($path . ' IS NOT NULL'),
+                return 'ILIKE(' . $path . ', :' . $param . ') = TRUE';
 
-            'is_any_of' => $qb
-                ->andWhere($path . ' IN (:' . $param . ')')
-                ->setParameter($param, $field->castValues($values)),
+            case 'is':
+                $qb->setParameter($param, $field->castValue($values[0]));
 
-            'is_not_any_of' => $qb
-                ->andWhere($path . ' NOT IN (:' . $param . ')')
-                ->setParameter($param, $field->castValues($values)),
+                return $path . ' = :' . $param;
 
-            'includes_all' => $qb
-                ->andWhere('CONTAINS(' . $path . ', :' . $param . ') = TRUE')
-                ->setParameter($param, $field->castValues($values)),
+            case 'is_not':
+                $qb->setParameter($param, $field->castValue($values[0]));
 
-            'excludes_all' => $qb
-                ->andWhere('CONTAINS(' . $path . ', :' . $param . ') = FALSE')
-                ->setParameter($param, $field->castValues($values)),
+                return $path . ' != :' . $param;
 
-            default => null,
-        };
+            case 'empty':
+                return 'text' === $field->type
+                    ? $qb->expr()->orX($path . ' IS NULL', $path . " = ''")
+                    : $path . ' IS NULL';
+
+            case 'not_empty':
+                return 'text' === $field->type
+                    ? $qb->expr()->andX($path . ' IS NOT NULL', $path . " != ''")
+                    : $path . ' IS NOT NULL';
+
+            case 'between':
+                $qb->setParameter($param . '_from', $field->castValue($values[0]));
+                $qb->setParameter($param . '_to', $field->castValue($values[1]));
+
+                return $path . ' BETWEEN :' . $param . '_from AND :' . $param . '_to';
+
+            case 'not_between':
+                $qb->setParameter($param . '_from', $field->castValue($values[0]));
+                $qb->setParameter($param . '_to', $field->castValue($values[1]));
+
+                return $path . ' NOT BETWEEN :' . $param . '_from AND :' . $param . '_to';
+
+            case 'before':
+                $qb->setParameter($param, $field->castValue($values[0]));
+
+                return $path . ' < :' . $param;
+
+            case 'after':
+                $qb->setParameter($param, $field->castValue($values[0]));
+
+                return $path . ' > :' . $param;
+
+            case 'is_any_of':
+                $qb->setParameter($param, $field->castValues($values));
+
+                return $path . ' IN (:' . $param . ')';
+
+            case 'is_not_any_of':
+                $qb->setParameter($param, $field->castValues($values));
+
+                return $path . ' NOT IN (:' . $param . ')';
+
+            case 'includes_all':
+                $qb->setParameter($param, $field->castValues($values));
+
+                return 'CONTAINS(' . $path . ', :' . $param . ') = TRUE';
+
+            case 'excludes_all':
+                $qb->setParameter($param, $field->castValues($values));
+
+                return 'CONTAINS(' . $path . ', :' . $param . ') = FALSE';
+
+            default:
+                return null;
+        }
     }
 
     /** @return T|null */
